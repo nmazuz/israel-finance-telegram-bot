@@ -9,6 +9,12 @@ module.exports.FLAGGED_TRANSACTIONS_DB_PATH_ENV_NAME = 'FlaggedTransactionsDbPat
 module.exports.TELEGRAM_TOKEN_ENV_NAME = 'TelegramToken';
 module.exports.TELEGRAM_CHAT_ID_ENV_NAME = 'TelegramChatId';
 
+// DB Connection const
+module.exports.DB_HOST = 'DBHost';
+module.exports.DB_USER = 'DBUser';
+module.exports.DB_PASS = 'DBPass';
+module.exports.DB_NAME = 'DBName';
+
 // Azure KeyVault Secrets
 module.exports.TELEGRAM_TOKEN_SECRET_NAME = 'TelegramToken';
 module.exports.TELEGRAM_CHAT_ID_SECRET_NAME = 'TelegramChatId';

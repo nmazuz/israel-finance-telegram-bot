@@ -1,5 +1,6 @@
 const { Telegram } = require('./telegram');
 const israeliBankScrapers = require('israeli-bank-scrapers');
+const mysql = require('mysql');
 const { JsonDB } = require('node-json-db');
 const moment = require('moment');
 const puppeteer = require('puppeteer');
@@ -22,6 +23,63 @@ class IsraelFinanceTelegramBot {
 
   setPeriodicRun() {
     setInterval(this.run.bind(this), this.envParams.intervalSeconds * 1000);
+  }
+
+  createConnection() {
+    const dbConnection = mysql.createConnection({
+      host: this.envParams.DBHost,
+      user: this.envParams.DBUser,
+      password: this.envParams.DBPass,
+      database: this.envParams.DBName,
+    });
+    dbConnection.connect();
+    return dbConnection;
+  }
+
+  closeConnection(dbConnection) {
+    return dbConnection.close();
+  }
+
+  insertTransaction(transaction, account, company) {
+    const connection = this.createConnection();
+    const date = transaction.date.substring(0, 10);
+    const year = transaction.date.substring(0, 4);
+    const month = transaction.date.substring(5, 7);
+    const identifier = typeof transaction.identifier === 'undefined' ? '000' : transaction.identifier;
+    const processedDate = transaction.processedDate.substring(0, 10);
+    const sql = `INSERT INTO expenses (type, identifier ,year, month, date, processed_date, original_amount, original_currency, charged_amount,description,status,memo, account, company) VALUES ('${transaction.type}',${identifier},${year},${month},'${date}','${processedDate}','${transaction.originalAmount}','${transaction.originalCurrency}',${transaction.chargedAmount},'${transaction.description.replace(/'/g, '')}','${transaction.status}', '${transaction.memo}', '${account}','${company}') ON DUPLICATE KEY UPDATE status='${transaction.status}',charged_amount=${transaction.chargedAmount};`;
+    console.log(sql);
+    connection.query(sql, (err, result) => {
+      if (err) throw err;
+    });
+  }
+
+  getRules(callback) {
+    const connection = this.createConnection();
+    const query = 'SELECT * FROM rules';
+    connection.query(query, (error, results) => {
+      if (error) throw error;
+      return callback(results);
+    });
+  }
+
+  applyRules() {
+    this.getRules((rules) => {
+      const connection = this.createConnection();
+      rules.forEach((rule) => {
+        console.log(rule);
+        // eslint-disable-next-line eqeqeq
+        let sql = `UPDATE expenses SET category_id = ${rule.category_id}, calculated=1 WHERE description LIKE '%${rule.text}%' AND category_id IS NULL`;
+        // eslint-disable-next-line eqeqeq
+        if (rule.operator != null) {
+          sql = `UPDATE expenses SET category_id = ${rule.category_id}, calculated=1 WHERE (description LIKE '%${rule.text}%' ${rule.operator} charged_amount = '${rule.amount}') AND category_id IS NULL`;
+        }
+        console.log(sql);
+        connection.query(sql, (err, result) => {
+          if (err) throw err;
+        });
+      });
+    });
   }
 
   static getMessageFromTransaction(transaction, cardNumber, serviceNiceName) {
@@ -84,6 +142,7 @@ class IsraelFinanceTelegramBot {
       if (this.envParams.isVerbose) {
         console.log(`Found new transaction: ${handledTransactionsDbPath}`);
       }
+      this.insertTransaction(transaction, account.accountNumber, service.companyId);
       const message = IsraelFinanceTelegramBot.getMessageFromTransaction(
         transaction,
         account.accountNumber,
@@ -95,6 +154,7 @@ class IsraelFinanceTelegramBot {
         transaction,
       );
     });
+    this.applyRules();
   }
 
   startRunStatistics() {
@@ -103,6 +163,25 @@ class IsraelFinanceTelegramBot {
 
     this.existingTransactionsFound = 0;
     this.newTransactionsFound = 0;
+  }
+
+  handleMessage(msg, callback) {
+    this.prepareRepsonse(msg, (responseMessage) => {
+      return callback(responseMessage);
+    });
+  }
+
+  async prepareRepsonse(msg, callback) {
+    const connection = this.createConnection();
+    const query = this.buildQuery(msg);
+    connection.query(query, (error, results) => {
+      if (error) throw error;
+      return callback(results[0].name);
+    });
+  }
+
+  buildQuery(msg) {
+    return 'SELECT * FROM expenses';
   }
 
   endRunStatistics() {
@@ -206,6 +285,14 @@ async function main() {
       envParams,
       yargs.argv.docker === true,
     );
+
+    iftb.telegram.bot.on('message', (msg) => {
+      const chatId = msg.chat.id;
+      iftb.handleMessage(msg, (response) => {
+        iftb.telegram.bot.sendMessage(chatId, response);
+      });
+    });
+    
     iftb.run();
   } catch (e) {
     console.log(`Error in main(): ${e}`);

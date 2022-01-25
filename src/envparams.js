@@ -8,6 +8,11 @@ class EnvParams {
     this.telegramChatId = process.env[consts.TELEGRAM_CHAT_ID_ENV_NAME];
     const servicesJsonStr = process.env[consts.SERVICES_JSON_ENV_NAME];
 
+    this.DBName = process.env[consts.DB_NAME];
+    this.DBHost = process.env[consts.DB_HOST];
+    this.DBUser = process.env[consts.DB_USER];
+    this.DBPass = process.env[consts.DB_PASS];
+    
     if (!this.keyVaultUrl && (!this.telegramToken || !this.telegramChatId)) {
       throw new Error('Telegram token and chat ID must be configured when not using Azure KeyVault');
     }
