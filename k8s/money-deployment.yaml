@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finance
+  labels:
+    app: finance
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: finance
+  template:
+    metadata:
+      labels:
+        app: finance
+    spec:
+      containers:
+        - name: finance
+          image: eu.gcr.io/virtualagent-276420/finance
+          volumeMounts:
+            - name: jsondb-storage
+              mountPath: /data/jsondb
+          env:
+            - name: ServicesJson
+              valueFrom:
+                secretKeyRef:
+                  name: moneystat-secrets
+                  key: SERVICE_JSON
+            - name: TelegramToken
+              valueFrom:
+                secretKeyRef:
+                  name: moneystat-secrets
+                  key: TELEGRAM_TOKEN
+            - name: TelegramChatId
+              valueFrom:
+                configMapKeyRef:
+                  name: moneystat-config
+                  key: TELEGRAM_CHATID
+            - name: HandledTransactionsDbPath
+              valueFrom:
+                configMapKeyRef:
+                  name: moneystat-config
+                  key: HANDLED_TRANSACTIONS_DB_PATH_ENV_NAME
+            - name: IntervalSeconds
+              valueFrom:
+                configMapKeyRef:
+                  name: moneystat-config
+                  key: INTERVAL_SECONDS_ENV_NAME
+            - name: MonthsToScanBack
+              valueFrom:
+                configMapKeyRef:
+                  name: moneystat-config
+                  key: MONTHS_TO_SCAN_BACK_ENV_NAME
+            - name: DBHost
+              valueFrom:
+                secretKeyRef:
+                  name: moneystat-secrets
+                  key: DB_HOST
+            - name: DBUser
+              valueFrom:
+                secretKeyRef:
+                  name: moneystat-secrets
+                  key: DB_USER
+            - name: DBPass
+              valueFrom:
+                secretKeyRef:
+                  name: moneystat-secrets
+                  key: DB_PASS
+            - name: DBName
+              valueFrom:
+                secretKeyRef:
+                  name: moneystat-secrets
+                  key: DB_NAME
+      volumes:
+        - name: jsondb-storage
+          persistentVolumeClaim:
+            claimName: jsondb-storage-disk

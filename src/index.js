@@ -48,7 +48,7 @@ class IsraelFinanceTelegramBot {
     const identifier = typeof transaction.identifier === 'undefined' ? '000' : transaction.identifier;
     const processedDate = transaction.processedDate.substring(0, 10);
     const sql = `INSERT INTO expenses (type, identifier ,year, month, date, processed_date, original_amount, original_currency, charged_amount,description,status,memo, account, company) VALUES ('${transaction.type}',${identifier},${year},${month},'${date}','${processedDate}','${transaction.originalAmount}','${transaction.originalCurrency}',${transaction.chargedAmount},'${transaction.description.replace(/'/g, '')}','${transaction.status}', '${transaction.memo}', '${account}','${company}') ON DUPLICATE KEY UPDATE status='${transaction.status}',charged_amount=${transaction.chargedAmount};`;
-    console.log(sql);
+    // console.log(sql);
     connection.query(sql, (err, result) => {
       if (err) throw err;
     });
@@ -67,14 +67,14 @@ class IsraelFinanceTelegramBot {
     this.getRules((rules) => {
       const connection = this.createConnection();
       rules.forEach((rule) => {
-        console.log(rule);
+        // console.log(rule);
         // eslint-disable-next-line eqeqeq
         let sql = `UPDATE expenses SET category_id = ${rule.category_id}, calculated=1 WHERE description LIKE '%${rule.text}%' AND category_id IS NULL`;
         // eslint-disable-next-line eqeqeq
         if (rule.operator != null) {
           sql = `UPDATE expenses SET category_id = ${rule.category_id}, calculated=1 WHERE (description LIKE '%${rule.text}%' ${rule.operator} charged_amount = '${rule.amount}') AND category_id IS NULL`;
         }
-        console.log(sql);
+        // console.log(sql);
         connection.query(sql, (err, result) => {
           if (err) throw err;
         });
@@ -236,6 +236,7 @@ class IsraelFinanceTelegramBot {
       const services = this.envParams.servicesJson;
       // eslint-disable-next-line no-restricted-syntax
       for (const service of services) {
+        console.log(service.companyId + " -> " + service.niceName);
         // Block each request separately
         await this.handleService(service);
       }
@@ -285,13 +286,6 @@ async function main() {
       envParams,
       yargs.argv.docker === true,
     );
-
-    iftb.telegram.bot.on('message', (msg) => {
-      const chatId = msg.chat.id;
-      iftb.handleMessage(msg, (response) => {
-        iftb.telegram.bot.sendMessage(chatId, response);
-      });
-    });
     
     iftb.run();
   } catch (e) {

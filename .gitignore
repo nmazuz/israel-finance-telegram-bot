@@ -95,4 +95,5 @@ handledTransactions.json
 # Environment
 .DS_Store
 /.vscode/
-.code-workspace
+.code-workspace/
+/k8s/moneytstat-secrets.yaml

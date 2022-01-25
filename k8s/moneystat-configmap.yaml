@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: moneystat-config
+  labels:
+    name: moneystat-config
+  namespace: default
+data:
+  TELEGRAM_CHATID: '853053828'
+  MONTHS_TO_SCAN_BACK_ENV_NAME: '4'
+  INTERVAL_SECONDS_ENV_NAME: '3600'
+  HANDLED_TRANSACTIONS_DB_PATH_ENV_NAME: '/data/jsondb/handledTransactions.json'
